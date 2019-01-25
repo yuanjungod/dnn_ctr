@@ -232,7 +232,7 @@ class AFM(torch.nn.Module):
         attention_tmp = torch.sum(attention_tmp, 1).view([-1, int(self.field_size * (self.field_size - 1) / 2)])
         attention_weight = torch.nn.Softmax()(attention_tmp)
         attention_output = torch.sum(interaction_layer.view([-1, self.embedding_size]) * self.P, 1).view(
-            [-1, self.field_size * (self.field_size - 1) / 2])
+            [-1, int(self.field_size * (self.field_size - 1) / 2)])
         attention_output = attention_output * attention_weight
 
         """
