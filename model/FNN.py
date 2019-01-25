@@ -540,22 +540,23 @@ class FNN(torch.nn.Module):
         return self.eval_metric(y.cpu().data.numpy(), y_pred)
 
 
-"""
-    test part
-"""
-import sys
+if __name__ == "__main__":
+    """
+        test part
+    """
+    import sys
 
-sys.path.append('../')
-from utils import data_preprocess
+    sys.path.append('../')
+    from utils import data_preprocess
 
-result_dict = data_preprocess.read_criteo_data('../data/train.csv', '../data/category_emb.csv')
-test_dict = data_preprocess.read_criteo_data('../data/test.csv', '../data/category_emb.csv')
-with torch.cuda.device(2):
-    fnn = FNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True,
-              pre_weight_decay=0.0001, weight_decay=0.00001, use_fm=False, use_ffm=True).cuda()
-    fnn.load_state_dict(torch.load('../data/model/ffnn.pkl'))
-    # fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
-    #            test_dict['index'], test_dict['value'], test_dict['label'],ealry_stopping=True,refit=False,is_pretrain=True,save_path='../data/model/ffnn.pkl')
-    fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
-            test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
-            is_pretrain=False, save_path='../data/model/ffnn.pkl')
+    result_dict = data_preprocess.read_criteo_data('../data/train.csv', '../data/category_emb.csv')
+    test_dict = data_preprocess.read_criteo_data('../data/test.csv', '../data/category_emb.csv')
+    with torch.cuda.device(2):
+        fnn = FNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True,
+                  pre_weight_decay=0.0001, weight_decay=0.00001, use_fm=False, use_ffm=True).cuda()
+        fnn.load_state_dict(torch.load('../data/model/ffnn.pkl'))
+        # fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
+        #            test_dict['index'], test_dict['value'], test_dict['label'],ealry_stopping=True,refit=False,is_pretrain=True,save_path='../data/model/ffnn.pkl')
+        fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
+                test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
+                is_pretrain=False, save_path='../data/model/ffnn.pkl')

@@ -558,8 +558,8 @@ import sys
 sys.path.append('../')
 from utils import data_preprocess
 
-result_dict = data_preprocess.read_criteo_data('../data/train.csv', '../data/category_emb.csv')
-test_dict = data_preprocess.read_criteo_data('../data/test.csv', '../data/category_emb.csv')
+result_dict = data_preprocess.read_criteo_data('../data/tiny_train.csv', '../data/category_emb.csv')
+test_dict = data_preprocess.read_criteo_data('../data/tiny_test.csv', '../data/category_emb.csv')
 with torch.cuda.device(1):
     nfm = NFM(39, result_dict['feature_sizes'], batch_size=128 * 64, is_shallow_dropout=False, verbose=True,
               use_cuda=True,

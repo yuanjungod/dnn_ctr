@@ -7,9 +7,10 @@ import torch
 result_dict = data_preprocess.read_criteo_data('./data/tiny_train_input.csv', './data/category_emb.csv')
 test_dict = data_preprocess.read_criteo_data('./data/tiny_test_input.csv', './data/category_emb.csv')
 
-print(result_dict['index'][0])
-print(result_dict['value'][0])
-print(result_dict['feature_sizes'])
+print([len(i) for i in result_dict['index']])
+print("#"*30)
+print([len(i) for i in result_dict['value']])
+# print(result_dict['feature_sizes'])
 # exit()
 
 # torch.set_num_threads(8)
