@@ -31,6 +31,7 @@ import torch.backends.cudnn
     网络结构部分
 """
 
+
 class PNN(torch.nn.Module):
     """
     :parameter
@@ -64,9 +65,11 @@ class PNN(torch.nn.Module):
     """
 
     def __init__(self, field_size, feature_sizes, embedding_size=4,
-                 h_depth = 3, deep_layers=[32, 32, 32], is_deep_dropout=True, dropout_deep=[0.5, 0.5, 0.5], use_inner_product = True, use_outer_product = False,
+                 h_depth=3, deep_layers=[32, 32, 32], is_deep_dropout=True, dropout_deep=[0.5, 0.5, 0.5],
+                 use_inner_product=True, use_outer_product=False,
                  deep_layers_activation='relu', n_epochs=64, batch_size=256, learning_rate=0.003,
-                 optimizer_type='adam', is_batch_norm=False, verbose=False, random_seed=950104,weight_decay=0.0, loss_type='logloss', eval_metric=roc_auc_score,
+                 optimizer_type='adam', is_batch_norm=False, verbose=False, random_seed=950104, weight_decay=0.0,
+                 loss_type='logloss', eval_metric=roc_auc_score,
                  use_cuda=True, n_class=1, greater_is_better=True
                  ):
         super(PNN, self).__init__()
@@ -119,14 +122,17 @@ class PNN(torch.nn.Module):
             embbedding part
         """
         print("Init embeddings")
-        self.embeddings = nn.ModuleList([nn.Embedding(feature_size, self.embedding_size) for feature_size in self.feature_sizes])
+        self.embeddings = nn.ModuleList(
+            [nn.Embedding(feature_size, self.embedding_size) for feature_size in self.feature_sizes])
         print("Init embeddings finished")
 
         """
             first order part (linear part)
         """
         print("Init first order part")
-        self.first_order_weight = nn.ModuleList([nn.ParameterList([torch.nn.Parameter(torch.randn(self.embedding_size), requires_grad=True) for j in range(self.field_size)]) for i in range(self.deep_layers[0])])
+        self.first_order_weight = nn.ModuleList([nn.ParameterList(
+            [torch.nn.Parameter(torch.randn(self.embedding_size), requires_grad=True) for j in range(self.field_size)])
+                                                 for i in range(self.deep_layers[0])])
         self.bias = torch.nn.Parameter(torch.randn(self.deep_layers[0]), requires_grad=True)
         print("Init first order part finished")
 
@@ -135,16 +141,17 @@ class PNN(torch.nn.Module):
         """
         print("Init second order part")
         if self.use_inner_product:
-            self.inner_second_weight_emb = nn.ModuleList([nn.ParameterList([torch.nn.Parameter(torch.randn(self.embedding_size), requires_grad=True) for j in range(self.field_size)]) for i in range(self.deep_layers[0])])
+            self.inner_second_weight_emb = nn.ModuleList([nn.ParameterList(
+                [torch.nn.Parameter(torch.randn(self.embedding_size), requires_grad=True) for j in
+                 range(self.field_size)]) for i in range(self.deep_layers[0])])
 
         if self.use_outer_product:
             arr = []
             for i in range(self.deep_layers[0]):
-                tmp = torch.randn(self.embedding_size,self.embedding_size)
-                arr.append(torch.nn.Parameter(torch.mm(tmp,tmp.t())))
+                tmp = torch.randn(self.embedding_size, self.embedding_size)
+                arr.append(torch.nn.Parameter(torch.mm(tmp, tmp.t())))
             self.outer_second_weight_emb = nn.ParameterList(arr)
         print("Init second order part finished")
-
 
         print("Init nn part")
 
@@ -157,7 +164,7 @@ class PNN(torch.nn.Module):
         self.deep_last_layer = nn.Linear(self.deep_layers[-1], self.n_class)
         print("Init nn part succeed")
 
-        print "Init succeed"
+        print("Init succeed")
 
     def forward(self, Xi, Xv):
         """
@@ -170,7 +177,7 @@ class PNN(torch.nn.Module):
         """
             embedding
         """
-        emb_arr = [(torch.sum(emb(Xi[:,i,:]),1).t()*Xv[:,i]).t() for i, emb in enumerate(self.embeddings)]
+        emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.embeddings)]
 
         """
             first order part (linear part)
@@ -179,9 +186,9 @@ class PNN(torch.nn.Module):
         for i, weight_arr in enumerate(self.first_order_weight):
             tmp_arr = []
             for j, weight in enumerate(weight_arr):
-                tmp_arr.append(torch.sum(emb_arr[j]*weight,1))
-            first_order_arr.append(sum(tmp_arr).view([-1,1]))
-        first_order = torch.cat(first_order_arr,1)
+                tmp_arr.append(torch.sum(emb_arr[j] * weight, 1))
+            first_order_arr.append(sum(tmp_arr).view([-1, 1]))
+        first_order = torch.cat(first_order_arr, 1)
 
         """
             second order part (quadratic part)
@@ -193,17 +200,18 @@ class PNN(torch.nn.Module):
                 for j, weight in enumerate(weight_arr):
                     tmp_arr.append(torch.sum(emb_arr[j] * weight, 1))
                 sum_ = sum(tmp_arr)
-                inner_product_arr.append((sum_*sum_).view([-1,1]))
-            inner_product = torch.cat(inner_product_arr,1)
+                inner_product_arr.append((sum_ * sum_).view([-1, 1]))
+            inner_product = torch.cat(inner_product_arr, 1)
             first_order = first_order + inner_product
 
         if self.use_outer_product:
             outer_product_arr = []
             emb_arr_sum = sum(emb_arr)
-            emb_matrix_arr = torch.bmm(emb_arr_sum.view([-1,self.embedding_size,1]),emb_arr_sum.view([-1,1,self.embedding_size]))
+            emb_matrix_arr = torch.bmm(emb_arr_sum.view([-1, self.embedding_size, 1]),
+                                       emb_arr_sum.view([-1, 1, self.embedding_size]))
             for i, weight in enumerate(self.outer_second_weight_emb):
-                outer_product_arr.append(torch.sum(torch.sum(emb_matrix_arr*weight,2),1).view([-1,1]))
-            outer_product = torch.cat(outer_product_arr,1)
+                outer_product_arr.append(torch.sum(torch.sum(emb_matrix_arr * weight, 2), 1).view([-1, 1]))
+            outer_product = torch.cat(outer_product_arr, 1)
             first_order = first_order + outer_product
 
         """
@@ -226,13 +234,8 @@ class PNN(torch.nn.Module):
         x_deep = self.deep_last_layer(x_deep)
         return torch.sum(x_deep, 1)
 
-
-
-
-
-
     def fit(self, Xi_train, Xv_train, y_train, Xi_valid=None, Xv_valid=None,
-                y_valid = None, ealry_stopping=False, refit=False, save_path = None):
+            y_valid=None, ealry_stopping=False, refit=False, save_path=None):
         """
         :param Xi_train: [[ind1_1, ind1_2, ...], [ind2_1, ind2_2, ...], ..., [indi_1, indi_2, ..., indi_j, ...], ...]
                         indi_j is the feature index of feature field j of sample i in the training set
@@ -258,12 +261,12 @@ class PNN(torch.nn.Module):
         if self.verbose:
             print("pre_process data ing...")
         is_valid = False
-        Xi_train = np.array(Xi_train).reshape((-1,self.field_size,1))
+        Xi_train = np.array(Xi_train).reshape((-1, self.field_size, 1))
         Xv_train = np.array(Xv_train)
         y_train = np.array(y_train)
         x_size = Xi_train.shape[0]
         if Xi_valid:
-            Xi_valid = np.array(Xi_valid).reshape((-1,self.field_size,1))
+            Xi_valid = np.array(Xi_valid).reshape((-1, self.field_size, 1))
             Xv_valid = np.array(Xv_valid)
             y_valid = np.array(y_valid)
             x_valid_size = Xi_valid.shape[0]
@@ -292,9 +295,9 @@ class PNN(torch.nn.Module):
             batch_iter = x_size // self.batch_size
             epoch_begin_time = time()
             batch_begin_time = time()
-            for i in range(batch_iter+1):
-                offset = i*self.batch_size
-                end = min(x_size, offset+self.batch_size)
+            for i in range(batch_iter + 1):
+                offset = i * self.batch_size
+                end = min(x_size, offset + self.batch_size)
                 if offset == end:
                     break
                 batch_xi = Variable(torch.LongTensor(Xi_train[offset:end]))
@@ -313,28 +316,28 @@ class PNN(torch.nn.Module):
                     if i % 100 == 99:  # print every 100 mini-batches
                         eval = self.evaluate(batch_xi, batch_xv, batch_y)
                         print('[%d, %5d] loss: %.6f metric: %.6f time: %.1f s' %
-                              (epoch + 1, i + 1, total_loss, eval, time()-batch_begin_time))
+                              (epoch + 1, i + 1, total_loss, eval, time() - batch_begin_time))
                         total_loss = 0.0
                         batch_begin_time = time()
 
-            train_loss, train_eval = self.eval_by_batch(Xi_train,Xv_train,y_train,x_size)
+            train_loss, train_eval = self.eval_by_batch(Xi_train, Xv_train, y_train, x_size)
             train_result.append(train_eval)
-            print('*'*50)
+            print('*' * 50)
             print('[%d] loss: %.6f metric: %.6f time: %.1f s' %
-                  (epoch + 1, train_loss, train_eval, time()-epoch_begin_time))
-            print('*'*50)
+                  (epoch + 1, train_loss, train_eval, time() - epoch_begin_time))
+            print('*' * 50)
 
             if is_valid:
                 valid_loss, valid_eval = self.eval_by_batch(Xi_valid, Xv_valid, y_valid, x_valid_size)
                 valid_result.append(valid_eval)
                 print('*' * 50)
                 print('[%d] loss: %.6f metric: %.6f time: %.1f s' %
-                      (epoch + 1, valid_loss, valid_eval,time()-epoch_begin_time))
+                      (epoch + 1, valid_loss, valid_eval, time() - epoch_begin_time))
                 print('*' * 50)
             if save_path:
-                torch.save(self.state_dict(),save_path)
+                torch.save(self.state_dict(), save_path)
             if is_valid and ealry_stopping and self.training_termination(valid_result):
-                print("early stop at [%d] epoch!" % (epoch+1))
+                print("early stop at [%d] epoch!" % (epoch + 1))
                 break
 
         # fit a few more epoch on train+valid until result reaches the best_train_score
@@ -346,11 +349,11 @@ class PNN(torch.nn.Module):
             else:
                 best_epoch = np.argmin(valid_result)
             best_train_score = train_result[best_epoch]
-            Xi_train = np.concatenate((Xi_train,Xi_valid))
-            Xv_train = np.concatenate((Xv_train,Xv_valid))
-            y_train = np.concatenate((y_train,y_valid))
+            Xi_train = np.concatenate((Xi_train, Xi_valid))
+            Xv_train = np.concatenate((Xv_train, Xv_valid))
+            y_train = np.concatenate((y_train, y_valid))
             x_size = x_size + x_valid_size
-            self.shuffle_in_unison_scary(Xi_train,Xv_train,y_train)
+            self.shuffle_in_unison_scary(Xi_train, Xv_train, y_train)
             for epoch in range(64):
                 batch_iter = x_size // self.batch_size
                 for i in range(batch_iter + 1):
@@ -371,21 +374,21 @@ class PNN(torch.nn.Module):
                 train_loss, train_eval = self.eval_by_batch(Xi_train, Xv_train, y_train, x_size)
                 if save_path:
                     torch.save(self.state_dict(), save_path)
-                if abs(best_train_score-train_eval) < 0.001 or \
+                if abs(best_train_score - train_eval) < 0.001 or \
                         (self.greater_is_better and train_eval > best_train_score) or \
                         ((not self.greater_is_better) and train_result < best_train_score):
                     break
             if self.verbose:
                 print("refit finished")
 
-    def eval_by_batch(self,Xi, Xv, y, x_size):
+    def eval_by_batch(self, Xi, Xv, y, x_size):
         total_loss = 0.0
         y_pred = []
         batch_size = 16384
         batch_iter = x_size // batch_size
         criterion = F.binary_cross_entropy_with_logits
         model = self.eval()
-        for i in range(batch_iter+1):
+        for i in range(batch_iter + 1):
             offset = i * batch_size
             end = min(x_size, offset + batch_size)
             if offset == end:
@@ -399,9 +402,9 @@ class PNN(torch.nn.Module):
             pred = F.sigmoid(outputs).cpu()
             y_pred.extend(pred.data.numpy())
             loss = criterion(outputs, batch_y)
-            total_loss += loss.data[0]*(end-offset)
-        total_metric = self.eval_metric(y,y_pred)
-        return total_loss/x_size, total_metric
+            total_loss += loss.data[0] * (end - offset)
+        total_metric = self.eval_metric(y, y_pred)
+        return total_loss / x_size, total_metric
 
     # shuffle three lists simutaneously
     def shuffle_in_unison_scary(self, a, b, c):
@@ -416,13 +419,13 @@ class PNN(torch.nn.Module):
         if len(valid_result) > 4:
             if self.greater_is_better:
                 if valid_result[-1] < valid_result[-2] and \
-                    valid_result[-2] < valid_result[-3] and \
-                    valid_result[-3] < valid_result[-4]:
+                        valid_result[-2] < valid_result[-3] and \
+                        valid_result[-3] < valid_result[-4]:
                     return True
             else:
                 if valid_result[-1] > valid_result[-2] and \
-                    valid_result[-2] > valid_result[-3] and \
-                    valid_result[-3] > valid_result[-4]:
+                        valid_result[-2] > valid_result[-3] and \
+                        valid_result[-3] > valid_result[-4]:
                     return True
         return False
 
@@ -432,7 +435,7 @@ class PNN(torch.nn.Module):
         :param Xv: the same as fit function
         :return: output, ont-dim array
         """
-        Xi = np.array(Xi).reshape((-1,self.field_size,1))
+        Xi = np.array(Xi).reshape((-1, self.field_size, 1))
         Xi = Variable(torch.LongTensor(Xi))
         Xv = Variable(torch.FloatTensor(Xv))
         if self.use_cuda and torch.cuda.is_available():
@@ -473,7 +476,6 @@ class PNN(torch.nn.Module):
         pred = F.sigmoid(model(Xi, Xv)).cpu()
         return pred.data.numpy()
 
-
     def evaluate(self, Xi, Xv, y):
         """
         :param Xi: tensor of feature index
@@ -484,16 +486,20 @@ class PNN(torch.nn.Module):
         y_pred = self.inner_predict_proba(Xi, Xv)
         return self.eval_metric(y.cpu().data.numpy(), y_pred)
 
+
 """
     test part
 """
 import sys
+
 sys.path.append('../')
 from utils import data_preprocess
 
 result_dict = data_preprocess.read_criteo_data('../data/train.csv', '../data/category_emb.csv')
 test_dict = data_preprocess.read_criteo_data('../data/test.csv', '../data/category_emb.csv')
 with torch.cuda.device(2):
-    pnn = PNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True,weight_decay=0.00001, use_inner_product=True, use_outer_product=True).cuda()
+    pnn = PNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True, weight_decay=0.00001,
+              use_inner_product=True, use_outer_product=True).cuda()
     pnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
-               test_dict['index'], test_dict['value'], test_dict['label'],ealry_stopping=True,refit=False,save_path='../data/model/pnn.pkl')
+            test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
+            save_path='../data/model/pnn.pkl')

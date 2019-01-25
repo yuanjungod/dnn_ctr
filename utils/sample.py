@@ -18,7 +18,7 @@ s_path = sys.argv[1]
 t_path = sys.argv[2]
 prob = float(sys.argv[3])
 
-with open(t_path,'wb') as f:
-    for line in open(s_path,'rb'):
+with open(t_path, 'wb') as f:
+    for line in open(s_path, 'rb'):
         if random.random() < prob:
             f.write(line)

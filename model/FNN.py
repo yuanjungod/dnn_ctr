@@ -31,6 +31,7 @@ import torch.backends.cudnn
     网络结构部分
 """
 
+
 class FNN(torch.nn.Module):
     """
     :parameter
@@ -67,7 +68,8 @@ class FNN(torch.nn.Module):
     def __init__(self, field_size, feature_sizes, embedding_size=4,
                  h_depth=2, deep_layers=[32, 32], is_deep_dropout=True, dropout_deep=[0.5, 0.5, 0.5],
                  deep_layers_activation='tanh', n_epochs=64, batch_size=256, learning_rate=0.003,
-                 optimizer_type='adam', is_batch_norm=False, verbose=False, random_seed=950104, pre_weight_decay= 0.0,weight_decay=0.0,
+                 optimizer_type='adam', is_batch_norm=False, verbose=False, random_seed=950104, pre_weight_decay=0.0,
+                 weight_decay=0.0,
                  use_fm=True, use_ffm=False, loss_type='logloss', eval_metric=roc_auc_score,
                  use_cuda=True, n_class=1, greater_is_better=True
                  ):
@@ -126,9 +128,11 @@ class FNN(torch.nn.Module):
         """
         if self.use_fm:
             print("Init fm part")
-            self.fm_bias = torch.nn.Parameter(torch.randn(1), requires_grad=True) #w0
-            self.fm_first_order_embeddings = nn.ModuleList([nn.Embedding(feature_size,1) for feature_size in self.feature_sizes]) #wi
-            self.fm_second_order_embeddings = nn.ModuleList([nn.Embedding(feature_size, self.embedding_size) for feature_size in self.feature_sizes]) #vi
+            self.fm_bias = torch.nn.Parameter(torch.randn(1), requires_grad=True)  # w0
+            self.fm_first_order_embeddings = nn.ModuleList(
+                [nn.Embedding(feature_size, 1) for feature_size in self.feature_sizes])  # wi
+            self.fm_second_order_embeddings = nn.ModuleList(
+                [nn.Embedding(feature_size, self.embedding_size) for feature_size in self.feature_sizes])  # vi
             print("Init fm part succeed")
 
         """
@@ -137,17 +141,21 @@ class FNN(torch.nn.Module):
         if self.use_ffm:
             print("Init ffm part")
             self.ffm_bias = torch.nn.Parameter(torch.randn(1), requires_grad=True)
-            self.ffm_first_order_embeddings = nn.ModuleList([nn.Embedding(feature_size,1) for feature_size in self.feature_sizes])
-            self.ffm_second_order_embeddings = nn.ModuleList([nn.ModuleList([nn.Embedding(feature_size, self.embedding_size) for i in range(self.field_size)]) for feature_size in self.feature_sizes])
+            self.ffm_first_order_embeddings = nn.ModuleList(
+                [nn.Embedding(feature_size, 1) for feature_size in self.feature_sizes])
+            self.ffm_second_order_embeddings = nn.ModuleList(
+                [nn.ModuleList([nn.Embedding(feature_size, self.embedding_size) for i in range(self.field_size)]) for
+                 feature_size in self.feature_sizes])
             print("Init ffm part succeed")
 
         print("Init nn part")
         if self.is_deep_dropout:
             self.linear_0_dropout = nn.Dropout(self.dropout_deep[0])
         if not use_ffm:
-            self.linear_1 = nn.Linear(1 + self.field_size + self.field_size  * self.embedding_size, deep_layers[0])
+            self.linear_1 = nn.Linear(1 + self.field_size + self.field_size * self.embedding_size, deep_layers[0])
         else:
-            self.linear_1 = nn.Linear(1 + self.field_size + self.field_size * self.field_size * self.embedding_size, deep_layers[0])
+            self.linear_1 = nn.Linear(1 + self.field_size + self.field_size * self.field_size * self.embedding_size,
+                                      deep_layers[0])
 
         if self.is_batch_norm:
             self.batch_norm_1 = nn.BatchNorm1d(deep_layers[0])
@@ -163,7 +171,7 @@ class FNN(torch.nn.Module):
         self.deep_last_layer = nn.Linear(self.deep_layers[-1], self.n_class)
         print("Init nn part succeed")
 
-        print "Init succeed"
+        print("Init succeed")
 
     def forward(self, Xi, Xv):
         """
@@ -173,34 +181,40 @@ class FNN(torch.nn.Module):
         :return: the last output
         """
         if self.pretrain and self.use_fm:
-            fm_first_order_emb_arr = [(torch.sum(emb(Xi[:,i,:]),1).t()*Xv[:,i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
-            fm_first_order_sum = torch.sum(sum(fm_first_order_emb_arr),1)
-            fm_second_order_emb_arr = [(torch.sum(emb(Xi[:,i,:]),1).t()*Xv[:,i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
+            fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in
+                                      enumerate(self.fm_first_order_embeddings)]
+            fm_first_order_sum = torch.sum(sum(fm_first_order_emb_arr), 1)
+            fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in
+                                       enumerate(self.fm_second_order_embeddings)]
             fm_sum_second_order_emb = sum(fm_second_order_emb_arr)
-            fm_sum_second_order_emb_square = fm_sum_second_order_emb*fm_sum_second_order_emb # (x+y)^2
-            fm_second_order_emb_square = [item*item for item in fm_second_order_emb_arr]
-            fm_second_order_emb_square_sum = sum(fm_second_order_emb_square) #x^2+y^2
+            fm_sum_second_order_emb_square = fm_sum_second_order_emb * fm_sum_second_order_emb  # (x+y)^2
+            fm_second_order_emb_square = [item * item for item in fm_second_order_emb_arr]
+            fm_second_order_emb_square_sum = sum(fm_second_order_emb_square)  # x^2+y^2
             fm_second_order = (fm_sum_second_order_emb_square - fm_second_order_emb_square_sum) * 0.5
-            fm_second_order_sum = torch.sum(fm_second_order,1)
-            return self.fm_bias+fm_first_order_sum+fm_second_order_sum
+            fm_second_order_sum = torch.sum(fm_second_order, 1)
+            return self.fm_bias + fm_first_order_sum + fm_second_order_sum
         elif self.pretrain and self.use_ffm:
-            ffm_first_order_emb_arr = [(torch.sum(emb(Xi[:,i,:]),1).t()*Xv[:,i]).t() for i, emb in enumerate(self.ffm_first_order_embeddings)]
-            sum_ = torch.sum(sum(ffm_first_order_emb_arr),1)
-            ffm_second_order_emb_arr = [[(torch.sum(emb(Xi[:,i,:]), 1).t() * Xv[:,i]).t() for emb in  f_embs] for i, f_embs in enumerate(self.ffm_second_order_embeddings)]
+            ffm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in
+                                       enumerate(self.ffm_first_order_embeddings)]
+            sum_ = torch.sum(sum(ffm_first_order_emb_arr), 1)
+            ffm_second_order_emb_arr = [[(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for emb in f_embs] for
+                                        i, f_embs in enumerate(self.ffm_second_order_embeddings)]
             for i in range(self.field_size):
-                for j in range(i+1, self.field_size):
-                    sum_ += torch.sum((ffm_second_order_emb_arr[i][j]*ffm_second_order_emb_arr[j][i]),1)
+                for j in range(i + 1, self.field_size):
+                    sum_ += torch.sum((ffm_second_order_emb_arr[i][j] * ffm_second_order_emb_arr[j][i]), 1)
             return self.ffm_bias + sum_
         elif not self.pretrain and self.use_fm:
-            fm_first_order_emb_arr = [(torch.sum(emb(Xi[:,i,:]),1).t()*Xv[:,i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
-            fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
-            fm_first_order = torch.cat(fm_first_order_emb_arr,1)
-            fm_second_order = torch.cat(fm_second_order_emb_arr,1)
+            fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in
+                                      enumerate(self.fm_first_order_embeddings)]
+            fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in
+                                       enumerate(self.fm_second_order_embeddings)]
+            fm_first_order = torch.cat(fm_first_order_emb_arr, 1)
+            fm_second_order = torch.cat(fm_second_order_emb_arr, 1)
             if self.use_cuda:
-                fm_bias = self.fm_bias * Variable(torch.ones(Xi.data.shape[0],1)).cuda()
+                fm_bias = self.fm_bias * Variable(torch.ones(Xi.data.shape[0], 1)).cuda()
             else:
                 fm_bias = self.fm_bias * Variable(torch.ones(Xi.data.shape[0], 1))
-            deep_emb = torch.cat([fm_bias,fm_first_order,fm_second_order],1)
+            deep_emb = torch.cat([fm_bias, fm_first_order, fm_second_order], 1)
             if self.deep_layers_activation == 'sigmoid':
                 activation = F.sigmoid
             elif self.deep_layers_activation == 'tanh':
@@ -223,13 +237,15 @@ class FNN(torch.nn.Module):
                 if self.is_deep_dropout:
                     x_deep = getattr(self, 'linear_' + str(i + 1) + '_dropout')(x_deep)
             x_deep = self.deep_last_layer(x_deep)
-            return torch.sum(x_deep,1)
+            return torch.sum(x_deep, 1)
         else:
-            ffm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.ffm_first_order_embeddings)]
-            ffm_second_order_emb_arr = [torch.cat([(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for emb in f_embs],1) for
-                                        i, f_embs in enumerate(self.ffm_second_order_embeddings)]
-            ffm_first_order = torch.cat(ffm_first_order_emb_arr,1)
-            ffm_second_order = torch.cat(ffm_second_order_emb_arr,1)
+            ffm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in
+                                       enumerate(self.ffm_first_order_embeddings)]
+            ffm_second_order_emb_arr = [
+                torch.cat([(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for emb in f_embs], 1) for
+                i, f_embs in enumerate(self.ffm_second_order_embeddings)]
+            ffm_first_order = torch.cat(ffm_first_order_emb_arr, 1)
+            ffm_second_order = torch.cat(ffm_second_order_emb_arr, 1)
             if self.use_cuda:
                 ffm_bias = self.ffm_bias * Variable(torch.ones(Xi.data.shape[0], 1)).cuda()
             else:
@@ -257,10 +273,10 @@ class FNN(torch.nn.Module):
                 if self.is_deep_dropout:
                     x_deep = getattr(self, 'linear_' + str(i + 1) + '_dropout')(x_deep)
             x_deep = self.deep_last_layer(x_deep)
-            return torch.sum(x_deep,1)
+            return torch.sum(x_deep, 1)
 
     def fit(self, Xi_train, Xv_train, y_train, Xi_valid=None, Xv_valid=None,
-                y_valid = None, is_pretrain = False, ealry_stopping=False, refit=False, save_path = None):
+            y_valid=None, is_pretrain=False, ealry_stopping=False, refit=False, save_path=None):
         """
         :param Xi_train: [[ind1_1, ind1_2, ...], [ind2_1, ind2_2, ...], ..., [indi_1, indi_2, ..., indi_j, ...], ...]
                         indi_j is the feature index of feature field j of sample i in the training set
@@ -291,12 +307,12 @@ class FNN(torch.nn.Module):
             print("pre_process data ing...")
         self.pretrain = is_pretrain
         is_valid = False
-        Xi_train = np.array(Xi_train).reshape((-1,self.field_size,1))
+        Xi_train = np.array(Xi_train).reshape((-1, self.field_size, 1))
         Xv_train = np.array(Xv_train)
         y_train = np.array(y_train)
         x_size = Xi_train.shape[0]
         if Xi_valid:
-            Xi_valid = np.array(Xi_valid).reshape((-1,self.field_size,1))
+            Xi_valid = np.array(Xi_valid).reshape((-1, self.field_size, 1))
             Xv_valid = np.array(Xv_valid)
             y_valid = np.array(y_valid)
             x_valid_size = Xi_valid.shape[0]
@@ -329,9 +345,9 @@ class FNN(torch.nn.Module):
             batch_iter = x_size // self.batch_size
             epoch_begin_time = time()
             batch_begin_time = time()
-            for i in range(batch_iter+1):
-                offset = i*self.batch_size
-                end = min(x_size, offset+self.batch_size)
+            for i in range(batch_iter + 1):
+                offset = i * self.batch_size
+                end = min(x_size, offset + self.batch_size)
                 if offset == end:
                     break
                 batch_xi = Variable(torch.LongTensor(Xi_train[offset:end]))
@@ -350,28 +366,28 @@ class FNN(torch.nn.Module):
                     if i % 100 == 99:  # print every 100 mini-batches
                         eval = self.evaluate(batch_xi, batch_xv, batch_y)
                         print('[%d, %5d] loss: %.6f metric: %.6f time: %.1f s' %
-                              (epoch + 1, i + 1, total_loss/100, eval, time()-batch_begin_time))
+                              (epoch + 1, i + 1, total_loss / 100, eval, time() - batch_begin_time))
                         total_loss = 0.0
                         batch_begin_time = time()
 
-            train_loss, train_eval = self.eval_by_batch(Xi_train,Xv_train,y_train,x_size)
+            train_loss, train_eval = self.eval_by_batch(Xi_train, Xv_train, y_train, x_size)
             train_result.append(train_eval)
-            print('*'*50)
+            print('*' * 50)
             print('[%d] loss: %.6f metric: %.6f time: %.1f s' %
-                  (epoch + 1, train_loss, train_eval, time()-epoch_begin_time))
-            print('*'*50)
+                  (epoch + 1, train_loss, train_eval, time() - epoch_begin_time))
+            print('*' * 50)
 
             if is_valid:
                 valid_loss, valid_eval = self.eval_by_batch(Xi_valid, Xv_valid, y_valid, x_valid_size)
                 valid_result.append(valid_eval)
                 print('*' * 50)
                 print('[%d] loss: %.6f metric: %.6f time: %.1f s' %
-                      (epoch + 1, valid_loss, valid_eval,time()-epoch_begin_time))
+                      (epoch + 1, valid_loss, valid_eval, time() - epoch_begin_time))
                 print('*' * 50)
             if save_path:
-                torch.save(self.state_dict(),save_path)
+                torch.save(self.state_dict(), save_path)
             if is_valid and ealry_stopping and self.training_termination(valid_result):
-                print("early stop at [%d] epoch!" % (epoch+1))
+                print("early stop at [%d] epoch!" % (epoch + 1))
                 break
 
         # fit a few more epoch on train+valid until result reaches the best_train_score
@@ -383,11 +399,11 @@ class FNN(torch.nn.Module):
             else:
                 best_epoch = np.argmin(valid_result)
             best_train_score = train_result[best_epoch]
-            Xi_train = np.concatenate((Xi_train,Xi_valid))
-            Xv_train = np.concatenate((Xv_train,Xv_valid))
-            y_train = np.concatenate((y_train,y_valid))
+            Xi_train = np.concatenate((Xi_train, Xi_valid))
+            Xv_train = np.concatenate((Xv_train, Xv_valid))
+            y_train = np.concatenate((y_train, y_valid))
             x_size = x_size + x_valid_size
-            self.shuffle_in_unison_scary(Xi_train,Xv_train,y_train)
+            self.shuffle_in_unison_scary(Xi_train, Xv_train, y_train)
             for epoch in range(64):
                 batch_iter = x_size // self.batch_size
                 for i in range(batch_iter + 1):
@@ -408,24 +424,24 @@ class FNN(torch.nn.Module):
                 train_loss, train_eval = self.eval_by_batch(Xi_train, Xv_train, y_train, x_size)
                 if save_path:
                     torch.save(self.state_dict(), save_path)
-                if abs(best_train_score-train_eval) < 0.001 or \
+                if abs(best_train_score - train_eval) < 0.001 or \
                         (self.greater_is_better and train_eval > best_train_score) or \
                         ((not self.greater_is_better) and train_result < best_train_score):
                     break
             if self.verbose:
                 print("refit finished")
 
-    def eval_by_batch(self,Xi, Xv, y, x_size):
+    def eval_by_batch(self, Xi, Xv, y, x_size):
         total_loss = 0.0
         y_pred = []
         if self.use_ffm:
-            batch_size = 16384*2
+            batch_size = 16384 * 2
         else:
             batch_size = 16384
         batch_iter = x_size // batch_size
         criterion = F.binary_cross_entropy_with_logits
         model = self.eval()
-        for i in range(batch_iter+1):
+        for i in range(batch_iter + 1):
             offset = i * batch_size
             end = min(x_size, offset + batch_size)
             if offset == end:
@@ -439,9 +455,9 @@ class FNN(torch.nn.Module):
             pred = F.sigmoid(outputs).cpu()
             y_pred.extend(pred.data.numpy())
             loss = criterion(outputs, batch_y)
-            total_loss += loss.data[0]*(end-offset)
-        total_metric = self.eval_metric(y,y_pred)
-        return total_loss/x_size, total_metric
+            total_loss += loss.data[0] * (end - offset)
+        total_metric = self.eval_metric(y, y_pred)
+        return total_loss / x_size, total_metric
 
     # shuffle three lists simutaneously
     def shuffle_in_unison_scary(self, a, b, c):
@@ -456,13 +472,13 @@ class FNN(torch.nn.Module):
         if len(valid_result) > 4:
             if self.greater_is_better:
                 if valid_result[-1] < valid_result[-2] and \
-                    valid_result[-2] < valid_result[-3] and \
-                    valid_result[-3] < valid_result[-4]:
+                        valid_result[-2] < valid_result[-3] and \
+                        valid_result[-3] < valid_result[-4]:
                     return True
             else:
                 if valid_result[-1] > valid_result[-2] and \
-                    valid_result[-2] > valid_result[-3] and \
-                    valid_result[-3] > valid_result[-4]:
+                        valid_result[-2] > valid_result[-3] and \
+                        valid_result[-3] > valid_result[-4]:
                     return True
         return False
 
@@ -472,7 +488,7 @@ class FNN(torch.nn.Module):
         :param Xv: the same as fit function
         :return: output, ont-dim array
         """
-        Xi = np.array(Xi).reshape((-1,self.field_size,1))
+        Xi = np.array(Xi).reshape((-1, self.field_size, 1))
         Xi = Variable(torch.LongTensor(Xi))
         Xv = Variable(torch.FloatTensor(Xv))
         if self.use_cuda and torch.cuda.is_available():
@@ -513,7 +529,6 @@ class FNN(torch.nn.Module):
         pred = F.sigmoid(model(Xi, Xv)).cpu()
         return pred.data.numpy()
 
-
     def evaluate(self, Xi, Xv, y):
         """
         :param Xi: tensor of feature index
@@ -524,10 +539,12 @@ class FNN(torch.nn.Module):
         y_pred = self.inner_predict_proba(Xi, Xv)
         return self.eval_metric(y.cpu().data.numpy(), y_pred)
 
+
 """
     test part
 """
 import sys
+
 sys.path.append('../')
 from utils import data_preprocess
 
@@ -535,9 +552,10 @@ result_dict = data_preprocess.read_criteo_data('../data/train.csv', '../data/cat
 test_dict = data_preprocess.read_criteo_data('../data/test.csv', '../data/category_emb.csv')
 with torch.cuda.device(2):
     fnn = FNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True,
-                      pre_weight_decay= 0.0001 ,weight_decay=0.00001, use_fm=False, use_ffm=True).cuda()
+              pre_weight_decay=0.0001, weight_decay=0.00001, use_fm=False, use_ffm=True).cuda()
     fnn.load_state_dict(torch.load('../data/model/ffnn.pkl'))
     # fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
     #            test_dict['index'], test_dict['value'], test_dict['label'],ealry_stopping=True,refit=False,is_pretrain=True,save_path='../data/model/ffnn.pkl')
     fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
-               test_dict['index'], test_dict['value'], test_dict['label'],ealry_stopping=True,refit=False,is_pretrain=False,save_path='../data/model/ffnn.pkl')
+            test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
+            is_pretrain=False, save_path='../data/model/ffnn.pkl')

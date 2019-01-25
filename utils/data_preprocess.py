@@ -13,25 +13,29 @@ import math
 import argparse
 import hashlib, csv, math, os, pickle, subprocess
 
+
 def gen_criteo_category_index(file_path):
     cate_dict = []
     for i in range(26):
         cate_dict.append({})
     for line in open(file_path, 'r'):
-        datas = line.replace('\n','').split('\t')
+        datas = line.replace('\n', '').split('\t')
+        print(datas[14:])
         for i, item in enumerate(datas[14:]):
             if not cate_dict[i].has_key(item):
                 cate_dict[i][item] = len(cate_dict[i])
     return cate_dict
 
+
 def write_criteo_category_index(file_path, cate_dict_arr):
-    f = open(file_path,'w')
+    f = open(file_path, 'w')
     for i, cate_dict in enumerate(cate_dict_arr):
         for key in cate_dict:
-            f.write(str(i)+','+key+','+str(cate_dict[key])+'\n')
+            f.write(str(i) + ',' + key + ',' + str(cate_dict[key]) + '\n')
+
 
 def load_criteo_category_index(file_path):
-    f = open(file_path,'r')
+    f = open(file_path, 'r')
     cate_dict = []
     for i in range(39):
         cate_dict.append({})
@@ -39,6 +43,7 @@ def load_criteo_category_index(file_path):
         datas = line.strip().split(',')
         cate_dict[int(datas[0])][datas[1]] = int(datas[2])
     return cate_dict
+
 
 def read_raw_criteo_data(file_path, embedding_path, type):
     """
@@ -58,7 +63,7 @@ def read_raw_criteo_data(file_path, embedding_path, type):
     elif type == 'test':
         begin_index = 0
     cate_embedding = load_criteo_category_index(embedding_path)
-    result = {'continuous_feat':[], 'category_feat':{'index':[],'value':[]}, 'label':[], 'feature_sizes':[]}
+    result = {'continuous_feat': [], 'category_feat': {'index': [], 'value': []}, 'label': [], 'feature_sizes': []}
     for i, item in enumerate(cate_embedding):
         result['feature_sizes'].append(len(item))
     f = open(file_path)
@@ -85,7 +90,7 @@ def read_raw_criteo_data(file_path, embedding_path, type):
             result['label'].append(0)
 
         continuous_array = []
-        for item in datas[begin_index:begin_index+13]:
+        for item in datas[begin_index:begin_index + 13]:
             if item == '':
                 continuous_array.append(-10.0)
             elif float(item) < 2.0:
@@ -96,20 +101,25 @@ def read_raw_criteo_data(file_path, embedding_path, type):
 
     return result
 
-def read_criteo_data(file_path,emb_file):
-    result = {'label':[], 'index':[],'value':[],'feature_sizes':[]}
+
+def read_criteo_data(file_path, emb_file):
+    result = {'label': [], 'index': [], 'value': [], 'feature_sizes': []}
     cate_dict = load_criteo_category_index(emb_file)
     for item in cate_dict:
+        # print(item)
+        # exit()
         result['feature_sizes'].append(len(item))
-    f = open(file_path,'r')
+    f = open(file_path, 'r')
     for line in f:
         datas = line.strip().split(',')
+        # print("len: %s" % len(datas))
         result['label'].append(int(datas[0]))
         indexs = [int(item) for item in datas[1:]]
         values = [1 for i in range(39)]
         result['index'].append(indexs)
         result['value'].append(values)
     return result
+
 
 def gen_criteo_category_emb_from_libffmfile(filepath, dir_path):
     fr = open(filepath)
@@ -124,14 +134,15 @@ def gen_criteo_category_emb_from_libffmfile(filepath, dir_path):
                 cate_emb_arr[filed][index] = len(cate_emb_arr[filed])
 
     with open(dir_path, 'w') as f:
-        for i,item in enumerate(cate_emb_arr):
+        for i, item in enumerate(cate_emb_arr):
             for key in item:
-                f.write(str(i)+','+str(key)+','+str(item[key])+'\n')
+                f.write(str(i) + ',' + str(key) + ',' + str(item[key]) + '\n')
+
 
 def gen_emb_input_file(filepath, emb_file, dir_path):
     cate_dict = load_criteo_category_index(emb_file)
-    fr = open(filepath,'r')
-    fw = open(dir_path,'w')
+    fr = open(filepath, 'r')
+    fw = open(dir_path, 'w')
     for line in fr:
         row = []
         datas = line.strip().split(' ')
@@ -140,24 +151,24 @@ def gen_emb_input_file(filepath, emb_file, dir_path):
             [filed, index, value] = item.split(':')
             filed = int(filed)
             row.append(str(cate_dict[filed][index]))
-        fw.write(','.join(row)+'\n')
+        fw.write(','.join(row) + '\n')
 
 
+if __name__ == "__main__":
+    # result_dict = read_criteo_data('../data/tiny_test.txt', '../data/category_index.csv', 'test')
+    #
+    # for item in result_dict['continuous_feat']:
+    #     print item
+    cate_dict = gen_criteo_category_index('../data/tiny_train_input.csv')
+    # write_criteo_category_index('../data/category_index.csv',cate_dict)
+    #
+    # gen_criteo_category_emb_from_libffmfile('../data/train.ffm','../data/category_emb.csv')
 
-# result_dict = read_criteo_data('../data/tiny_test.txt', '../data/category_index.csv', 'test')
-#
-# for item in result_dict['continuous_feat']:
-#     print item
-# cate_dict = gen_criteo_category_index('../data/train.txt')
-# write_criteo_category_index('../data/category_index.csv',cate_dict)
+    # gen_emb_input_file('../data/train.ffm','../data/category_emb.csv','../data/train_input.csv')
 
-#gen_criteo_category_emb_from_libffmfile('../data/train.ffm','../data/category_emb.csv')
+    # result = read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
 
-#gen_emb_input_file('../data/train.ffm','../data/category_emb.csv','../data/train_input.csv')
-
-# result = read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
-
-# print len(result['label']), len(result['index']), len(result['value'])
-# print result['feature_sizes']
-# for item in result['index']:
-#     print len(item)
+    # print len(result['label']), len(result['index']), len(result['value'])
+    # print result['feature_sizes']
+    # for item in result['index']:
+    #     print len(item)
