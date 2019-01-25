@@ -353,6 +353,7 @@ class DeepFM(torch.nn.Module):
             train model
         """
         model = self.train()
+        model.cuda(0)
 
         optimizer = torch.optim.SGD(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         if self.optimizer_type == 'adam':
