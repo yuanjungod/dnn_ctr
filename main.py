@@ -13,10 +13,10 @@ print(result_dict['feature_sizes'])
 # exit()
 
 # torch.set_num_threads(8)
-# with torch.cuda.device(2):
+with torch.cuda.device(0):
 # deepfm = DeepFM.DeepFM(39, result_dict['feature_sizes'], verbose=True, use_cuda=True, weight_decay=0.0001,
 #                        use_fm=True, use_ffm=False, use_deep=True).cuda()
-deepfm = DeepFM.DeepFM(39, result_dict['feature_sizes'], verbose=True, use_cuda=True, weight_decay=0.0001,
-                       use_fm=True, use_ffm=False, use_deep=True)
-deepfm.fit(result_dict['index'], result_dict['value'], result_dict['label'],
-           test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=True)
+    deepfm = DeepFM.DeepFM(39, result_dict['feature_sizes'], verbose=True, use_cuda=True, weight_decay=0.0001,
+                           use_fm=True, use_ffm=False, use_deep=True)
+    deepfm.fit(result_dict['index'], result_dict['value'], result_dict['label'],
+               test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=True)
