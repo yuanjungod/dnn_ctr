@@ -499,7 +499,7 @@ from utils import data_preprocess
 
 result_dict = data_preprocess.read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
 test_dict = data_preprocess.read_criteo_data('../data/tiny_test_input.csv', '../data/category_emb.csv')
-with torch.cuda.device(2):
+with torch.cuda.device(0):
     pnn = PNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True, weight_decay=0.00001,
               use_inner_product=True, use_outer_product=True).cuda()
     pnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],

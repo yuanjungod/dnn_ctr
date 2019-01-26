@@ -561,7 +561,7 @@ from utils import data_preprocess
 
 result_dict = data_preprocess.read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
 test_dict = data_preprocess.read_criteo_data('../data/tiny_test_input.csv', '../data/category_emb.csv')
-with torch.cuda.device(1):
+with torch.cuda.device(0):
     nfm = NFM(39, result_dict['feature_sizes'], batch_size=128 * 64, is_shallow_dropout=False, verbose=True,
               use_cuda=True,
               weight_decay=0.00002, use_fm=True, use_ffm=False, interation_type=False).cuda()

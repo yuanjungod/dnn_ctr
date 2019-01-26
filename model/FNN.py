@@ -552,7 +552,7 @@ if __name__ == "__main__":
 
     result_dict = data_preprocess.read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
     test_dict = data_preprocess.read_criteo_data('../data/tiny_test_input.csv', '../data/category_emb.csv')
-    with torch.cuda.device(2):
+    with torch.cuda.device(0):
         fnn = FNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True,
                   pre_weight_decay=0.0001, weight_decay=0.00001, use_fm=False, use_ffm=True).cuda()
         fnn.load_state_dict(torch.load('../data/model/ffnn.pkl'))
