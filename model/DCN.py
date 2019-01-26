@@ -168,8 +168,8 @@ class DCN(torch.nn.Module):
             print("Init inner product network")
             if self.is_inner_product_dropout:
                 self.inner_product_0_dropout = nn.Dropout(self.dropout_inner_product_deep[0])
-            self.inner_product_linear_1 = nn.Linear(self.field_size * (self.field_size - 1) / 2,
-                                                    self.inner_product_layers[0])
+            self.inner_product_linear_1 = nn.Linear(int(self.field_size * (self.field_size - 1) / 2),
+                                                    int(self.inner_product_layers[0]))
             if self.is_inner_product_dropout:
                 self.inner_product_1_dropout = nn.Dropout(self.dropout_inner_product_deep[1])
             if self.is_batch_norm:

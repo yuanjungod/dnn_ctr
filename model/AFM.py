@@ -502,20 +502,21 @@ class AFM(torch.nn.Module):
         return self.eval_metric(y.cpu().data.numpy(), y_pred)
 
 
-"""
-    test part
-"""
-import sys
+if __name__ == "__main__":
+    """
+        test part
+    """
+    import sys
 
-sys.path.append('../')
-from utils import data_preprocess
+    sys.path.append('../')
+    from utils import data_preprocess
 
-result_dict = data_preprocess.read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
-test_dict = data_preprocess.read_criteo_data('../data/tiny_test_input.csv', '../data/category_emb.csv')
-with torch.cuda.device(0):
-    afm = AFM(39, result_dict['feature_sizes'], batch_size=128 * 64, is_shallow_dropout=False, verbose=True,
-              use_cuda=True,
-              weight_decay=0.00002, use_fm=True, use_ffm=False).cuda()
-    afm.fit(result_dict['index'], result_dict['value'], result_dict['label'],
-            test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
-            save_path='../data/afm.pkl')
+    result_dict = data_preprocess.read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
+    test_dict = data_preprocess.read_criteo_data('../data/tiny_test_input.csv', '../data/category_emb.csv')
+    with torch.cuda.device(0):
+        afm = AFM(39, result_dict['feature_sizes'], batch_size=128 * 64, is_shallow_dropout=False, verbose=True,
+                  use_cuda=True,
+                  weight_decay=0.00002, use_fm=True, use_ffm=False).cuda()
+        afm.fit(result_dict['index'], result_dict['value'], result_dict['label'],
+                test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
+                save_path='../data/afm.pkl')
