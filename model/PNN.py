@@ -504,4 +504,4 @@ with torch.cuda.device(0):
               use_inner_product=True, use_outer_product=True).cuda()
     pnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
             test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
-            save_path='../data/model/pnn.pkl')
+            save_path='../data/pnn.pkl')

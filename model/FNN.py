@@ -560,4 +560,4 @@ if __name__ == "__main__":
         #            test_dict['index'], test_dict['value'], test_dict['label'],ealry_stopping=True,refit=False,is_pretrain=True,save_path='../data/model/ffnn.pkl')
         fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
                 test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
-                is_pretrain=False, save_path='../data/model/ffnn.pkl')
+                is_pretrain=False, save_path='../data/ffnn.pkl')

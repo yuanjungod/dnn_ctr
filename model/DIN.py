@@ -592,4 +592,4 @@ with torch.cuda.device(0):
     din.fit(result_dict['index'], result_dict['value'], result_dict['label'],
             test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, pre_train=False,
             n_epochs=64, refit=False,
-            save_path='../data/model/din.pkl')
+            save_path='../data/din.pkl')

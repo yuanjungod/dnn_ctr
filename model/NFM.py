@@ -567,4 +567,4 @@ with torch.cuda.device(0):
               weight_decay=0.00002, use_fm=True, use_ffm=False, interation_type=False).cuda()
     nfm.fit(result_dict['index'], result_dict['value'], result_dict['label'],
             test_dict['index'], test_dict['value'], test_dict['label'], ealry_stopping=True, refit=False,
-            save_path='../data/model/nfm.pkl')
+            save_path='../data/nfm.pkl')
