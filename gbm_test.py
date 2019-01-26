@@ -14,7 +14,8 @@ X_train, y_train = result_dict['index'], result_dict['label']
 X_test, y_test = test_dict['index'], test_dict['label']
 
 gbm = lgb.LGBMClassifier(num_leaves=31, learning_rate=0.05, n_estimators=100)
-gbm.fit(X_train, y_train, eval_set=[(X_test, y_test)], eval_metric='l1', early_stopping_rounds=5)
+gbm.fit(np.array(X_train), np.array(y_train), eval_set=[(np.array(X_test), np.array(y_test))],
+        eval_metric='l1', early_stopping_rounds=5)
 print(sum(y_train)/len(y_train))
 
 
