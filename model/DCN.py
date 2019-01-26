@@ -342,6 +342,7 @@ class DCN(torch.nn.Module):
             train model
         """
         model = self.train()
+        model.cuda(0)
 
         optimizer = torch.optim.SGD(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         if self.optimizer_type == 'adam':
@@ -560,8 +561,8 @@ import sys
 sys.path.append('../')
 from utils import data_preprocess
 
-result_dict = data_preprocess.read_criteo_data('../data/tiny_train.csv', '../data/category_emb.csv')
-test_dict = data_preprocess.read_criteo_data('../data/tiny_test.csv', '../data/category_emb.csv')
+result_dict = data_preprocess.read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
+test_dict = data_preprocess.read_criteo_data('../data/tiny_test_input.csv', '../data/category_emb.csv')
 with torch.cuda.device(0):
     dcn = DCN(39, result_dict['feature_sizes'], batch_size=128 * 32, verbose=True, use_cuda=True,
               weight_decay=0.00002, use_inner_product=True).cuda()

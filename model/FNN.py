@@ -324,6 +324,7 @@ class FNN(torch.nn.Module):
             train model
         """
         model = self.train()
+        model.cuda(0)
         if self.pretrain:
             weight_decay = self.pre_weight_decay
         else:
@@ -361,7 +362,7 @@ class FNN(torch.nn.Module):
                 loss.backward()
                 optimizer.step()
 
-                total_loss += loss.data[0]
+                total_loss += loss.data
                 if self.verbose:
                     if i % 100 == 99:  # print every 100 mini-batches
                         eval = self.evaluate(batch_xi, batch_xv, batch_y)
@@ -455,7 +456,7 @@ class FNN(torch.nn.Module):
             pred = F.sigmoid(outputs).cpu()
             y_pred.extend(pred.data.numpy())
             loss = criterion(outputs, batch_y)
-            total_loss += loss.data[0] * (end - offset)
+            total_loss += loss.data * (end - offset)
         total_metric = self.eval_metric(y, y_pred)
         return total_loss / x_size, total_metric
 
@@ -549,8 +550,8 @@ if __name__ == "__main__":
     sys.path.append('../')
     from utils import data_preprocess
 
-    result_dict = data_preprocess.read_criteo_data('../data/train.csv', '../data/category_emb.csv')
-    test_dict = data_preprocess.read_criteo_data('../data/test.csv', '../data/category_emb.csv')
+    result_dict = data_preprocess.read_criteo_data('../data/tiny_train_input.csv', '../data/category_emb.csv')
+    test_dict = data_preprocess.read_criteo_data('../data/tiny_test_input.csv', '../data/category_emb.csv')
     with torch.cuda.device(2):
         fnn = FNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True,
                   pre_weight_decay=0.0001, weight_decay=0.00001, use_fm=False, use_ffm=True).cuda()
