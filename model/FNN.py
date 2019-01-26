@@ -555,7 +555,7 @@ if __name__ == "__main__":
     with torch.cuda.device(0):
         fnn = FNN(39, result_dict['feature_sizes'], batch_size=128 * 64, verbose=True, use_cuda=True,
                   pre_weight_decay=0.0001, weight_decay=0.00001, use_fm=False, use_ffm=True).cuda()
-        fnn.load_state_dict(torch.load('../data/model/ffnn.pkl'))
+        fnn.load_state_dict(torch.load('../data/ffnn.pkl'))
         # fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
         #            test_dict['index'], test_dict['value'], test_dict['label'],ealry_stopping=True,refit=False,is_pretrain=True,save_path='../data/model/ffnn.pkl')
         fnn.fit(result_dict['index'], result_dict['value'], result_dict['label'],
